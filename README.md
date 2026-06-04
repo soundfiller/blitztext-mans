@@ -1,4 +1,8 @@
-# Blitztext App
+# Blitztext — Måns' Fork
+
+> Forked from [cmagnussen/blitztext-app](https://github.com/cmagnussen/blitztext-app)
+>
+> **Key addition: configurable API endpoint.** Point Blitztext at any OpenAI-compatible API — local Ollama, LM Studio, custom server, or the default OpenAI API.
 
 Blitztext App is an experimental open-source macOS menubar app for turning speech into text.
 
@@ -6,7 +10,7 @@ It is intentionally small and unfinished. The goal is to make a real workflow vi
 
 This is a learning and experimentation project, not a polished product.
 
-> Preview status: bring your own OpenAI API key, no hosted backend, no warranty, no support guarantee.
+> Preview status: bring your own API key, no hosted backend, no warranty, no support guarantee.
 
 ## What It Does
 
@@ -83,6 +87,30 @@ The generated `.app` is ad-hoc signed for local development only. Do not treat i
 On first launch, either paste your own OpenAI API key for online workflows or install a WhisperKit CoreML model for local transcription. Rewriting workflows still require OpenAI.
 
 For fully local transcription, install a WhisperKit CoreML model and enable **Sicherer Lokaler Modus** in the app.
+
+## Custom API (Måns' Fork)
+
+You can point Blitztext at any OpenAI-compatible API instead of OpenAI:
+
+1. Go to Settings → **Zugang** tab
+2. Enter your API key as normal
+3. Enable **Eigene API verwenden** and enter your API's base URL
+4. Configure model names for transcription and rewriting
+
+**Examples:**
+
+| Backend | Base URL | Transcription Model | Rewrite Model |
+|---------|----------|-------------------|---------------|
+| Ollama | `http://localhost:11434/v1` | (whisper not supported) | `llama3.2` or `mistral` |
+| LM Studio | `http://localhost:1234/v1` | (whisper not supported) | `local-model` |
+| OpenAI | (leave empty) | `whisper-1` | `gpt-4o-mini` |
+| Custom server | `https://your-api.example.com/v1` | your-model | your-model |
+
+**Note:** The API must expose OpenAI-compatible endpoints:
+- `/v1/audio/transcriptions` for transcription
+- `/v1/chat/completions` for rewriting
+
+For local-only transcription without any API, use **Sicherer Lokaler Modus** with WhisperKit instead.
 
 For a slower, more explicit walkthrough, see [docs/setup.md](docs/setup.md).
 

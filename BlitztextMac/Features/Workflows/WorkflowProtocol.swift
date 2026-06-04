@@ -122,19 +122,38 @@ struct AppSettings: Codable {
     var secureLocalModeEnabled: Bool = false
     var selectedLocalTranscriptionModelName: String = LocalTranscriptionService.recommendedFastModelName
     var hasAutoSelectedFastLocalModel: Bool = false
+    var customAPIBaseURL: String = ""
+    var customTranscriptionModel: String = "whisper-1"
+    var customRewriteModel: String = "gpt-4o-mini"
+
+    var resolvedAPIBaseURL: String {
+        let trimmed = customAPIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "https://api.openai.com" }
+        return trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
+    }
+
+    var usesCustomAPI: Bool {
+        !customAPIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     init(
         hotkeyMode: HotkeyMode = .hold,
         hasSeenOnboarding: Bool = false,
         secureLocalModeEnabled: Bool = false,
         selectedLocalTranscriptionModelName: String = LocalTranscriptionService.recommendedFastModelName,
-        hasAutoSelectedFastLocalModel: Bool = false
+        hasAutoSelectedFastLocalModel: Bool = false,
+        customAPIBaseURL: String = "",
+        customTranscriptionModel: String = "whisper-1",
+        customRewriteModel: String = "gpt-4o-mini"
     ) {
         self.hotkeyMode = hotkeyMode
         self.hasSeenOnboarding = hasSeenOnboarding
         self.secureLocalModeEnabled = secureLocalModeEnabled
         self.selectedLocalTranscriptionModelName = selectedLocalTranscriptionModelName
         self.hasAutoSelectedFastLocalModel = hasAutoSelectedFastLocalModel
+        self.customAPIBaseURL = customAPIBaseURL
+        self.customTranscriptionModel = customTranscriptionModel
+        self.customRewriteModel = customRewriteModel
     }
 
     enum CodingKeys: String, CodingKey {
@@ -143,6 +162,9 @@ struct AppSettings: Codable {
         case secureLocalModeEnabled
         case selectedLocalTranscriptionModelName
         case hasAutoSelectedFastLocalModel
+        case customAPIBaseURL
+        case customTranscriptionModel
+        case customRewriteModel
     }
 
     init(from decoder: Decoder) throws {
@@ -158,6 +180,9 @@ struct AppSettings: Codable {
             Bool.self,
             forKey: .hasAutoSelectedFastLocalModel
         ) ?? false
+        customAPIBaseURL = try container.decodeIfPresent(String.self, forKey: .customAPIBaseURL) ?? ""
+        customTranscriptionModel = try container.decodeIfPresent(String.self, forKey: .customTranscriptionModel) ?? "whisper-1"
+        customRewriteModel = try container.decodeIfPresent(String.self, forKey: .customRewriteModel) ?? "gpt-4o-mini"
     }
 }
 

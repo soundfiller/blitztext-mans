@@ -160,6 +160,50 @@ struct AccessSettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            // Custom API settings
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel(text: "Eigene API (Optional)")
+
+                Toggle("Eigene API verwenden", isOn: Binding(
+                    get: { !appState.appSettings.customAPIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty },
+                    set: { enabled in
+                        if enabled && appState.appSettings.customAPIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            appState.appSettings.customAPIBaseURL = "http://localhost:11434/v1"
+                        } else if !enabled {
+                            appState.appSettings.customAPIBaseURL = ""
+                        }
+                    }
+                ))
+                .toggleStyle(.switch)
+
+                if !appState.appSettings.customAPIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("API Basis-URL")
+                            .font(.system(size: 10.5, weight: .medium))
+                        TextField("z.B. http://localhost:11434/v1", text: $appState.appSettings.customAPIBaseURL)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 11.5))
+
+                        Text("Transkriptions-Modell")
+                            .font(.system(size: 10.5, weight: .medium))
+                        TextField("whisper-1", text: $appState.appSettings.customTranscriptionModel)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 11.5))
+
+                        Text("Rewrite-Modell")
+                            .font(.system(size: 10.5, weight: .medium))
+                        TextField("gpt-4o-mini", text: $appState.appSettings.customRewriteModel)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 11.5))
+                    }
+
+                    Text("API-Formate muessen OpenAI-kompatibel sein (/v1/audio/transcriptions, /v1/chat/completions).")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 SectionLabel(text: "Installation")
 

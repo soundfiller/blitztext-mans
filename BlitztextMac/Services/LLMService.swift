@@ -57,7 +57,7 @@ private struct OpenAIErrorResponse: Decodable {
 }
 
 enum LLMService {
-    private static let chatCompletionsURL = URL(string: "https://api.openai.com/v1/chat/completions")!
+    private static let defaultChatCompletionsURL = URL(string: "https://api.openai.com/v1/chat/completions")!
 
     private static let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -68,42 +68,54 @@ enum LLMService {
         return URLSession(configuration: configuration)
     }()
 
+    private static func resolveChatURL(baseURL: String) -> URL {
+        guard !baseURL.isEmpty else { return defaultChatCompletionsURL }
+        let trimmed = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
+        return URL(string: "\(trimmed)/chat/completions") ?? defaultChatCompletionsURL
+    }
+
     static func improve(
         text: String,
         settings: TextImprovementSettings,
-        model: RewriteModel = .fastEdit
+        model: RewriteModel = .fastEdit,
+        appSettings: AppSettings? = nil
     ) async throws -> String {
         try await complete(
             text: text,
             systemPrompt: buildSystemPrompt(settings: settings),
             model: model,
-            temperature: 0.3
+            temperature: 0.3,
+            appSettings: appSettings
         )
     }
 
     static func dampfAblassen(
         text: String,
         systemPrompt: String,
-        model: RewriteModel = .rageMode
+        model: RewriteModel = .rageMode,
+        appSettings: AppSettings? = nil
     ) async throws -> String {
         try await complete(
             text: text,
             systemPrompt: systemPrompt,
             model: model,
-            temperature: 0.4
+            temperature: 0.4,
+            appSettings: appSettings
         )
     }
 
     static func addEmojis(
         text: String,
         settings: EmojiTextSettings,
-        model: RewriteModel = .fastEdit
+        model: RewriteModel = .fastEdit,
+        appSettings: AppSettings? = nil
     ) async throws -> String {
         try await complete(
             text: text,
             systemPrompt: buildEmojiSystemPrompt(density: settings.emojiDensity),
             model: model,
-            temperature: 0.3
+            temperature: 0.3,
+            appSettings: appSettings
         )
     }
 
@@ -111,14 +123,27 @@ enum LLMService {
         text: String,
         systemPrompt: String,
         model: RewriteModel,
-        temperature: Double
+        temperature: Double,
+        appSettings: AppSettings? = nil
     ) async throws -> String {
         guard let apiKey = KeychainService.load(key: .openAIAPIKey) else {
             throw LLMError.notConfigured
         }
 
+        let settings = appSettings ?? AppSettings()
+        let modelName: String
+        let url: URL
+
+        if settings.usesCustomAPI {
+            modelName = settings.customRewriteModel
+            url = resolveChatURL(baseURL: settings.resolvedAPIBaseURL)
+        } else {
+            modelName = model.rawValue
+            url = defaultChatCompletionsURL
+        }
+
         let payload = OpenAIChatRequest(
-            model: model.rawValue,
+            model: modelName,
             messages: [
                 .init(role: "system", content: systemPrompt),
                 .init(role: "user", content: text),
@@ -126,7 +151,7 @@ enum LLMService {
             temperature: temperature
         )
 
-        var request = URLRequest(url: chatCompletionsURL)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

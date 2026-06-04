@@ -29,8 +29,8 @@ private struct TranscriptionOpenAIErrorResponse: Decodable {
 }
 
 enum TranscriptionService {
-    private static let remoteModel = "whisper-1"
-    private static let transcriptionsURL = URL(string: "https://api.openai.com/v1/audio/transcriptions")!
+    private static let defaultRemoteModel = "whisper-1"
+    private static let defaultTranscriptionsURL = URL(string: "https://api.openai.com/v1/audio/transcriptions")!
 
     private static let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -41,14 +41,28 @@ enum TranscriptionService {
         return URLSession(configuration: configuration)
     }()
 
+    private static func resolveTranscriptionsURL(baseURL: String) -> URL {
+        guard !baseURL.isEmpty else { return defaultTranscriptionsURL }
+        let trimmed = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
+        return URL(string: "\(trimmed)/audio/transcriptions") ?? defaultTranscriptionsURL
+    }
+
     static func transcribe(
         audioURL: URL,
         customTerms: [String] = [],
-        language: String? = nil
+        language: String? = nil,
+        appSettings: AppSettings? = nil
     ) async throws -> String {
         guard let apiKey = KeychainService.load(key: .openAIAPIKey) else {
             throw TranscriptionError.notConfigured
         }
+
+        let settings = appSettings ?? AppSettings()
+        let baseURL = settings.resolvedAPIBaseURL
+        let remoteModel = settings.usesCustomAPI
+            ? settings.customTranscriptionModel
+            : defaultRemoteModel
+        let url = resolveTranscriptionsURL(baseURL: settings.usesCustomAPI ? baseURL : "")
 
         return try await Task.detached(priority: .userInitiated) {
             defer {
@@ -56,7 +70,7 @@ enum TranscriptionService {
             }
 
             let boundary = UUID().uuidString
-            var request = URLRequest(url: transcriptionsURL)
+            var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
