@@ -194,7 +194,7 @@ enum TranscriptionBackend: String, Codable {
 // MARK: - Workflow Settings
 
 struct TranscriptionSettings: Codable {
-    var language: String = "de"
+    var language: String = "en"
 }
 
 struct DampfAblassenSettings: Codable {
